@@ -19,6 +19,8 @@ plotly==7.0.0
 # Ingestão (BigQuery / GCS)
 google-cloud-bigquery==3.45.0
 google-cloud-storage==3.14.1
+# Acelera a leitura de resultados grandes (alunos: ~10min -> ~1min)
+google-cloud-bigquery-storage==2.41.0
 db-dtypes==1.7.1
 python-dotenv==1.0.0
 

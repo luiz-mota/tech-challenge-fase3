@@ -138,6 +138,19 @@ def amostrar_para_busca(df: pd.DataFrame, n: int = 300_000) -> pd.DataFrame:
         df.groupby("id_municipio", group_keys=False)
         .sample(frac=fracao, random_state=SEED)
     )
+
+    # `frac` arredonda para baixo: um município com 9 alunos a uma fração de 0,06
+    # vira zero linha e desaparece da amostra — justamente o perfil raro que mais
+    # interessa preservar. Garantimos pelo menos uma linha por município.
+    faltantes = set(df["id_municipio"]) - set(amostra["id_municipio"])
+    if faltantes:
+        resgate = (
+            df[df["id_municipio"].isin(faltantes)]
+            .groupby("id_municipio", group_keys=False)
+            .sample(n=1, random_state=SEED)
+        )
+        amostra = pd.concat([amostra, resgate])
+        logger.info("Resgatados %d municípios que a fração zerou", len(faltantes))
     logger.info(
         "Amostra para busca: %d alunos / %d municípios (de %d / %d)",
         len(amostra), amostra["id_municipio"].nunique(),

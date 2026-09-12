@@ -24,6 +24,10 @@ data/processed/*
 *.csv
 *.xlsx
 
+# Exceção: resultados de relatório são pequenos e fazem parte da entrega —
+# a banca precisa conseguir lê-los direto no GitHub, sem rodar o pipeline.
+!reports/*.csv
+
 # Modelos treinados (grandes, reproduzíveis)
 *.pkl
 *.joblib

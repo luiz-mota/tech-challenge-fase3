@@ -64,6 +64,43 @@ def test_flag_de_cold_start_corresponde_ao_historico_ausente(dataset: pd.DataFra
     assert (dataset["sem_historico_municipal"].astype(bool) == esperado).all()
 
 
+def test_historico_vem_de_2023_e_nao_de_2024(dataset: pd.DataFrame):
+    """A disciplina temporal do projeto, verificada contra a fonte.
+
+    O desenho é "features de 2023 -> alvo de 2024". Se `hist_taxa_alfabetizacao`
+    passasse a refletir 2024, o modelo estaria vendo o próprio alvo agregado e a
+    métrica explodiria sem nenhum erro aparecer. Este teste confronta o dataset
+    com o microdado bruto: o valor precisa bater com 2023 e NÃO com 2024.
+    """
+    caminho = Path(__file__).resolve().parents[1] / "data" / "raw" / "alunos.parquet"
+    if not caminho.exists():
+        pytest.skip("data/raw/alunos.parquet ausente")
+
+    alunos = pd.read_parquet(caminho)
+    validos = alunos[(alunos["presenca"] == "1") & (alunos["preenchimento_caderno"] == "1")]
+    taxa_por_ano = (
+        validos.assign(alf=(validos["alfabetizado"] == "1").astype(float))
+        .groupby(["id_municipio", "ano"])["alf"]
+        .mean()
+        .unstack()
+    )
+    # Só municípios com microdado nos dois anos e com taxas distintas entre eles —
+    # se 2023 e 2024 coincidissem, o teste não distinguiria nada.
+    candidatos = taxa_por_ano.dropna()
+    candidatos = candidatos[(candidatos[2023] - candidatos[2024]).abs() > 0.05]
+    assert not candidatos.empty, "nenhum município serve de sonda"
+
+    no_dataset = (
+        dataset[dataset["id_municipio"].isin(candidatos.index)]
+        .groupby("id_municipio")["hist_taxa_alfabetizacao"]
+        .first()
+    )
+    sonda = candidatos.loc[no_dataset.index]
+
+    assert np.allclose(no_dataset, sonda[2023]), "o histórico não é o de 2023"
+    assert not np.allclose(no_dataset, sonda[2024]), "o histórico está refletindo 2024"
+
+
 def test_sao_paulo_tem_historico_municipal(dataset: pd.DataFrame):
     """SP não pode voltar a ser cold start por falha de ingestão.
 

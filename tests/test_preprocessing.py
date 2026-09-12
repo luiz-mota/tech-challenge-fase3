@@ -64,6 +64,47 @@ def test_flag_de_cold_start_corresponde_ao_historico_ausente(dataset: pd.DataFra
     assert (dataset["sem_historico_municipal"].astype(bool) == esperado).all()
 
 
+def test_sao_paulo_tem_historico_municipal(dataset: pd.DataFrame):
+    """SP não pode voltar a ser cold start por falha de ingestão.
+
+    O microdado de 2023 não cobre São Paulo, e a primeira versão do pipeline tratou
+    seus 642 municípios como "sem histórico" — 21,2% da base inteira. A taxa de 2023
+    existe na Gold e é recuperável. Se este teste falhar, o preenchimento quebrou.
+    """
+    sp = dataset[dataset["uf"] == "SP"]
+    assert not sp.empty, "SP ausente do dataset"
+    sem_historico = sp["hist_taxa_alfabetizacao"].isna().mean()
+    assert sem_historico < 0.05, f"{sem_historico:.1%} dos alunos de SP sem histórico"
+
+
+def test_cold_start_residual_e_pequeno(dataset: pd.DataFrame):
+    """Cold start legítimo é DF, AC e alguns casos isolados — não um estado inteiro."""
+    fracao = (dataset["sem_historico_municipal"] == 1).mean()
+    assert fracao < 0.05, f"cold start em {fracao:.1%} — o preenchimento pela Gold falhou"
+
+
+def test_historico_do_gold_implica_features_do_microdado_ausentes(dataset: pd.DataFrame):
+    """A flag precisa significar exatamente o que promete.
+
+    Município preenchido pela Gold tem a taxa, mas NÃO tem proficiência, contagem de
+    escolas, dispersão nem participação — essas só existem no microdado. Se isso
+    deixar de valer, a flag virou ruído e o modelo está sendo informado errado.
+    """
+    do_gold = dataset[dataset["historico_do_gold"] == 1]
+    if do_gold.empty:
+        pytest.skip("nenhum município preenchido pela Gold")
+
+    assert do_gold["hist_taxa_alfabetizacao"].notna().all()
+    for coluna in ["hist_proficiencia_media", "hist_n_escolas", "hist_taxa_participacao"]:
+        assert do_gold[coluna].isna().all(), f"{coluna} deveria ser nula quando vem da Gold"
+
+
+def test_flags_de_historico_sao_mutuamente_exclusivas(dataset: pd.DataFrame):
+    """Ou o município tem histórico (de alguma fonte), ou não tem. Nunca os dois."""
+    ambos = (dataset["sem_historico_municipal"] == 1) & (dataset["historico_do_gold"] == 1)
+    assert not ambos.any(), "município marcado simultaneamente como cold start e preenchido"
+
+
 def test_separacao_remove_alvo_e_grupo(amostra: pd.DataFrame):
     X, y, grupos = separar_features_alvo(amostra)
     assert ALVO not in X.columns

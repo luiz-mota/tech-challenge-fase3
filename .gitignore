@@ -1,0 +1,62 @@
+# ==========================================================
+# Credenciais e segredos — NUNCA versionar
+# ==========================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+sa-key.json
+*service-account*.json
+*-key.json
+tech-challenge-*.json
+gcp-*.json
+
+# ==========================================================
+# Dados — reproduzíveis via src/ingestion, não versionados
+# ==========================================================
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+*.parquet
+*.csv
+*.xlsx
+
+# Modelos treinados (grandes, reproduzíveis)
+*.pkl
+*.joblib
+models/
+
+# ==========================================================
+# Python
+# ==========================================================
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+build/
+dist/
+.pytest_cache/
+
+# ==========================================================
+# Jupyter
+# ==========================================================
+.ipynb_checkpoints/
+
+# ==========================================================
+# IDE / OS
+# ==========================================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ==========================================================
+# Logs
+# ==========================================================
+*.log

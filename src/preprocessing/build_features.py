@@ -102,6 +102,61 @@ def construir_historico_municipal(alunos: pd.DataFrame) -> pd.DataFrame:
     return hist.reset_index()
 
 
+def completar_historico_com_gold(hist: pd.DataFrame) -> pd.DataFrame:
+    """Preenche o histórico de municípios ausentes do microdado usando a Gold.
+
+    O microdado de 2023 não cobre São Paulo: 642 municípios paulistas aparecem só
+    em 2024 em `alunos.parquet`. Sem este preenchimento, 21,2% da base é tratada
+    como cold start por falha de ingestão, não por ausência real de dado.
+
+    SÓ `taxa_alfabetizacao` é aproveitável. As colunas `taxa_alfabetizacao_alunos`,
+    `proficiencia_media` e `n_alunos_avaliados` da Gold são 100% nulas exatamente
+    nas 627 linhas de SP — elas são derivadas do mesmo microdado que falta, então
+    não trazem informação nova. `taxa_alfabetizacao` vem do indicador oficial
+    publicado e existe para todos os 5.448 municípios.
+
+    Isso implica uma pequena inconsistência de fonte, medida e aceita: nos 4.821
+    municípios presentes nas duas origens, `taxa_alfabetizacao/100` difere da taxa
+    derivada do microdado em 0,6 p.p. (mediana), correlação 0,983. Não é a mesma
+    conta — provavelmente difere no tratamento de pesos amostrais. Por isso o
+    microdado permanece como fonte primária (a Gold só entra via `fillna`) e a
+    flag `historico_do_gold` deixa o modelo distinguir as duas origens.
+
+    Cinco features não têm equivalente aproveitável (`hist_proficiencia_media`,
+    `hist_n_avaliados`, `hist_n_escolas`, `hist_desvio_entre_escolas`,
+    `hist_taxa_participacao`) e seguem nulas para esses municípios.
+
+    A Gold é segura aqui porque `gold_indicador_municipio` guarda uma linha por
+    município POR ANO — diferente de `gold_metas_vs_resultados`, que colapsou para
+    o ano mais recente e por isso carregava o alvo (ver reports/03_features.md).
+    Filtrar `ano == 2023` devolve 2023 de verdade.
+    """
+    gold = pd.read_parquet(RAW / "gold_indicador_municipio.parquet")
+    gold = gold[gold["ano"] == ANO_FEATURES]
+
+    equivalencias = {"hist_taxa_alfabetizacao": gold["taxa_alfabetizacao"] / 100}
+    de_gold = pd.DataFrame({"id_municipio": gold["id_municipio"], **equivalencias})
+
+    # `outer`: município que só existe na Gold precisa entrar, não só ser atualizado.
+    combinado = hist.merge(de_gold, on="id_municipio", how="outer", suffixes=("", "_gold"))
+
+    faltava = combinado["hist_taxa_alfabetizacao"].isna()
+    combinado["historico_do_gold"] = (
+        faltava & combinado["hist_taxa_alfabetizacao_gold"].notna()
+    ).astype("int8")
+
+    for coluna in equivalencias:
+        combinado[coluna] = combinado[coluna].fillna(combinado[f"{coluna}_gold"])
+
+    combinado = combinado.drop(columns=[f"{c}_gold" for c in equivalencias])
+
+    logger.info(
+        "Histórico completado pela Gold: %d municípios (total agora: %d)",
+        int(combinado["historico_do_gold"].sum()), len(combinado),
+    )
+    return combinado
+
+
 def carregar_metas() -> pd.DataFrame:
     """Metas pactuadas — conhecidas de antemão, portanto seguras como feature.
 
@@ -160,7 +215,7 @@ def montar_dataset() -> pd.DataFrame:
         ["id_municipio", "id_escola", "rede", "alfabetizado"]
     ].copy()
 
-    historico = construir_historico_municipal(alunos)
+    historico = completar_historico_com_gold(construir_historico_municipal(alunos))
     metas = carregar_metas()
     enriquecimento = carregar_enriquecimento()
 
@@ -174,10 +229,11 @@ def montar_dataset() -> pd.DataFrame:
     # informação de 2023. Substitui o gap_meta_2030 da Gold, que estava contaminado.
     df["gap_meta_2024"] = df["meta_alfabetizacao_2024"] - df["hist_taxa_alfabetizacao"] * 100
 
-    # Cold start: 23% dos alunos estão em municípios que entraram na avaliação agora.
-    # Sinalizar é melhor que imputar silenciosamente — o modelo aprende a tratá-los,
-    # e a avaliação pode isolar esse subgrupo.
+    # Cold start REAL: município sem histórico em nenhuma das duas fontes — 1,9% dos
+    # alunos, quase todos do DF e do AC. Sinalizar é melhor que imputar
+    # silenciosamente: o modelo aprende a tratá-los e a avaliação isola o subgrupo.
     df["sem_historico_municipal"] = df["hist_taxa_alfabetizacao"].isna().astype("int8")
+    df["historico_do_gold"] = df["historico_do_gold"].fillna(0).astype("int8")
 
     df["uf"] = df["id_municipio"].str[:2].map(UF_POR_CODIGO)
     df["regiao"] = df["id_municipio"].str[:1].map(REGIAO_POR_DIGITO)

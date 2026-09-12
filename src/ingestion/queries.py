@@ -94,19 +94,31 @@ WHERE ano = {ANO_IDHM}
 # O IDHM é de 2010; PIB e população de {ANO_FEATURES} corrigem parte dessa
 # defasagem. O PIB per capita é calculado no join, não aqui, para manter cada
 # query com responsabilidade única.
+#
+# O desmembramento setorial (valor adicionado por setor) só existe até 2021 na
+# fonte — em 2022/2023 o IBGE publicou apenas o PIB total. Como a composição
+# setorial de um município muda devagar, puxamos a de ANO_VA como proxy
+# estrutural, num LEFT JOIN separado para não perder os municípios.
+ANO_VA = 2021
+
 PIB_POPULACAO = f"""
 SELECT
     pib.id_municipio,
     pop.sigla_uf,
     pib.pib,
-    pib.va_agropecuaria,
-    pib.va_industria,
-    pib.va_servicos,
-    pib.va_adespss,
-    pop.populacao
+    pop.populacao,
+    va.va_agropecuaria,
+    va.va_industria,
+    va.va_servicos,
+    va.va_adespss
 FROM `{BD}.br_ibge_pib.municipio` AS pib
 INNER JOIN `{BD}.br_ibge_populacao.municipio` AS pop
     ON pib.id_municipio = pop.id_municipio AND pib.ano = pop.ano
+LEFT JOIN (
+    SELECT id_municipio, va_agropecuaria, va_industria, va_servicos, va_adespss
+    FROM `{BD}.br_ibge_pib.municipio`
+    WHERE ano = {ANO_VA}
+) AS va ON va.id_municipio = pib.id_municipio
 WHERE pib.ano = {ANO_FEATURES}
 """
 
@@ -139,7 +151,8 @@ SELECT
     AVG(acessibilidade_rampas)                        AS censo_prop_rampas,
     AVG(CASE WHEN tipo_localizacao = '2' THEN 1 ELSE 0 END) AS censo_prop_rural,
     AVG(quantidade_sala_utilizada)                    AS censo_media_salas,
-    AVG(quantidade_computador_aluno)                  AS censo_media_computador_aluno,
+    -- quantidade_computador_aluno foi descartada: está 100% nula em todos os anos
+    -- da fonte (2019-2024), apesar de existir no schema.
     SUM(quantidade_matricula_fundamental_anos_iniciais) AS censo_matriculas_anos_iniciais,
     SUM(quantidade_docente_fundamental_anos_iniciais)   AS censo_docentes_anos_iniciais,
     SUM(quantidade_turma_fundamental_anos_iniciais)     AS censo_turmas_anos_iniciais

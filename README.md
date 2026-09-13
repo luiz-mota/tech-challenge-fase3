@@ -25,8 +25,12 @@ técnico e financeiro com antecedência.
 ## 2. Objetivo analítico
 
 Prever, para cada aluno avaliado em 2024, a probabilidade de ser considerado alfabetizado,
-usando **exclusivamente informação disponível antes da avaliação** (histórico de 2023 da
-escola e do município + contexto socioeconômico municipal).
+usando **exclusivamente informação disponível antes da avaliação**: histórico de 2023 do
+**município** + metas pactuadas + contexto socioeconômico municipal.
+
+O histórico por **escola** não entra — e a razão é um achado da Fase 2 deste projeto: o
+`id_escola` dos microdados é **re-sorteado a cada ano**, então o mesmo código não identifica
+a mesma escola entre 2023 e 2024. Detalhes em [`reports/02_eda.md`](reports/02_eda.md).
 
 A saída alimenta três usos: ranking de risco por município, previsão de municípios que não
 atingirão a meta, e agrupamento de territórios com padrões semelhantes.
@@ -94,8 +98,9 @@ notebooks/       # análise exploratória e aplicação estratégica
 src/
 ├── ingestion/      # extração do BigQuery (microdados + Gold + enriquecimento)
 ├── preprocessing/  # filtros, feature engineering, ColumnTransformer
-├── modeling/       # baseline, treino, otimização de hiperparâmetros
+├── modeling/       # split, baseline, treino, otimização de hiperparâmetros
 ├── evaluation/     # métricas, SHAP, análise de threshold
+├── application/    # ranking de risco municipal e clusterização
 └── visualization/  # gráficos para relatórios e vídeo executivo
 reports/         # achados escritos de cada fase
 images/          # gráficos exportados

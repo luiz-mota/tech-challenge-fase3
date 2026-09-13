@@ -1,0 +1,61 @@
+{
+  "n_teste": 292324,
+  "n_criancas_em_risco": 116844,
+  "por_orcamento": [
+    {
+      "orcamento_%": 10.0,
+      "modelo_recall": 0.162567183595221,
+      "modelo_precisao": 0.646264289602613,
+      "modelo_encontradas": 18995,
+      "baseline_recall": 0.1575776248673445,
+      "baseline_precisao": 0.6164456943886434,
+      "baseline_encontradas": 18412,
+      "ganho_criancas": 583,
+      "ganho_%": 3.1664132087768846
+    },
+    {
+      "orcamento_%": 20.0,
+      "modelo_recall": 0.3009910650097566,
+      "modelo_precisao": 0.600327740129389,
+      "modelo_encontradas": 35169,
+      "baseline_recall": 0.2840026017596111,
+      "baseline_precisao": 0.5675583225011972,
+      "baseline_encontradas": 33184,
+      "ganho_criancas": 1985,
+      "ganho_%": 5.981798457087753
+    },
+    {
+      "orcamento_%": 30.0,
+      "modelo_recall": 0.43016329464927594,
+      "modelo_precisao": 0.5568888150240984,
+      "modelo_encontradas": 50262,
+      "baseline_recall": 0.40417137379754203,
+      "baseline_precisao": 0.5348486907674187,
+      "baseline_encontradas": 47225,
+      "ganho_criancas": 3037,
+      "ganho_%": 6.4309158284806776
+    },
+    {
+      "orcamento_%": 40.0,
+      "modelo_recall": 0.5324021772619904,
+      "modelo_precisao": 0.5285526148094651,
+      "modelo_encontradas": 62208,
+      "baseline_recall": 0.527943240560063,
+      "baseline_precisao": 0.5038511488103503,
+      "baseline_encontradas": 61687,
+      "ganho_criancas": 521,
+      "ganho_%": 0.8445863796261773
+    },
+    {
+      "orcamento_%": 50.0,
+      "modelo_recall": 0.6425319229057547,
+      "modelo_precisao": 0.5115946275613462,
+      "modelo_encontradas": 75076,
+      "baseline_recall": 0.6138098661463147,
+      "baseline_precisao": 0.4904803589014115,
+      "baseline_encontradas": 71720,
+      "ganho_criancas": 3356,
+      "ganho_%": 4.67930842163971
+    }
+  ]
+}

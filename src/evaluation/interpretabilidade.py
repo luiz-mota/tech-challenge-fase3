@@ -22,24 +22,20 @@ import json
 from pathlib import Path
 
 import joblib
-import matplotlib
 import numpy as np
 import pandas as pd
+import shap
 
-matplotlib.use("Agg")  # sem display: o script roda headless e só salva arquivos
-import matplotlib.pyplot as plt  # noqa: E402
-import shap  # noqa: E402
-
-from src.modeling.split import separar_treino_teste  # noqa: E402
-from src.preprocessing.pipeline import separar_features_alvo  # noqa: E402
-from src.utils.logging_config import setup_logger  # noqa: E402
+from src.modeling.split import separar_treino_teste
+from src.preprocessing.pipeline import separar_features_alvo
+from src.utils.logging_config import setup_logger
+from src.visualization import graficos
 
 logger = setup_logger(__name__)
 
 RAIZ = Path(__file__).resolve().parents[2]
 PROCESSED = RAIZ / "data" / "processed"
 REPORTS = RAIZ / "reports"
-FIGURAS = REPORTS / "figuras"
 MODELOS = RAIZ / "models"
 
 SEED = 42
@@ -52,14 +48,6 @@ TOP_N = 20
 
 def sigmoide(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
-
-
-def salvar(nome: str) -> None:
-    FIGURAS.mkdir(parents=True, exist_ok=True)
-    caminho = FIGURAS / nome
-    plt.savefig(caminho, dpi=130, bbox_inches="tight")
-    plt.close("all")
-    logger.info("Figura salva: %s", caminho.name)
 
 
 def verificar_eficiencia(explicacao, pipeline, X_amostra) -> dict:
@@ -135,27 +123,15 @@ def comparar_com_importancia_nativa(modelo, nomes, ranking_shap) -> pd.DataFrame
     return gain
 
 
-def graficos_globais(explicacao, ranking) -> None:
-    shap.plots.beeswarm(explicacao, max_display=TOP_N, show=False)
-    plt.title("Impacto das features na previsão (log-odds de alfabetização)")
-    salvar("shap_beeswarm.png")
-
-    shap.plots.bar(explicacao, max_display=TOP_N, show=False)
-    plt.title("Importância global — média do |SHAP|")
-    salvar("shap_importancia_global.png")
+def graficos_globais(explicacao) -> None:
+    graficos.shap_beeswarm(explicacao, max_display=TOP_N)
+    graficos.shap_importancia_global(explicacao, max_display=TOP_N)
 
 
 def graficos_dependencia(explicacao, ranking, n: int = 3) -> list[str]:
-    """Como o efeito de uma feature varia com o seu valor.
-
-    Isto é o que a importância nativa não entrega: não só *quanto* pesa, mas em
-    que faixa o efeito muda de sinal.
-    """
     principais = ranking["feature"].head(n).tolist()
     for feature in principais:
-        shap.plots.scatter(explicacao[:, feature], show=False)
-        plt.title(f"Efeito de {feature} conforme seu valor")
-        salvar(f"shap_dependencia_{feature}.png")
+        graficos.shap_dependencia(explicacao, feature)
     return principais
 
 
@@ -179,9 +155,7 @@ def casos_individuais(explicacao, prob, teste_amostra) -> dict:
 
     resumo = {}
     for rotulo, idx in casos.items():
-        shap.plots.waterfall(explicacao[idx], max_display=14, show=False)
-        plt.title(f"{rotulo} — probabilidade prevista de alfabetização: {prob[idx]:.3f}")
-        salvar(f"shap_waterfall_{rotulo}.png")
+        graficos.shap_waterfall(explicacao[idx], rotulo, float(prob[idx]))
         resumo[rotulo] = {
             "probabilidade_alfabetizacao": float(prob[idx]),
             "uf": str(teste_amostra["uf"].iloc[idx]),
@@ -221,7 +195,7 @@ def main() -> None:
     comparacao = comparar_com_importancia_nativa(modelo, nomes, ranking)
     comparacao.to_csv(REPORTS / "shap_vs_gain.csv", index=False)
 
-    graficos_globais(explicacao, ranking)
+    graficos_globais(explicacao)
     principais = graficos_dependencia(explicacao, ranking)
 
     prob = pipeline.predict_proba(X_amostra)[:, 1]

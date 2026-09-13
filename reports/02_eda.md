@@ -73,6 +73,18 @@ coerentes em sinal e teoricamente plausíveis, porém **moderadas** (|r| ≤ 0,2
 O modelo precisará combiná-las; não há atalho.
 
 ### Cold start é relevante
+
+> ⚠️ **Este achado foi posteriormente revisado.** A conclusão abaixo estava correta em
+> relação ao que havia sido extraído, mas **errada em relação ao que existia na fonte**. A
+> análise SHAP da Fase 5 revelou que 92,4% desse "cold start" era São Paulo, cujo histórico
+> de 2023 estava disponível na camada Gold e não havia sido usado — falha de ingestão nossa.
+> Depois da correção, o cold start real é de **1,9%** (35.453 alunos, 51 municípios).
+> Ver [`reports/03_features.md`](03_features.md).
+>
+> O texto original fica preservado porque a revisão faz parte do percurso analítico — e
+> porque o erro só apareceu quando a interpretabilidade foi aplicada, o que é em si um
+> argumento a favor dela.
+
 **23,1% dos alunos de 2024** (428.119, em 676 municípios) estão em municípios sem histórico
 em 2023. São municípios que entraram na avaliação agora — do ponto de vista de triagem, são
 os que mais precisam de estimativa de risco, e é onde o modelo depende inteiramente do
@@ -92,7 +104,7 @@ contexto socioeconômico. Serão avaliados separadamente.
 | 6 | Manter as 3 fontes de enriquecimento | Cobertura ≈100%, sinal moderado mas coerente |
 | 7 | Baseline = taxa municipal de 2023 | AUC 0,63 com uma única variável |
 | 8 | `GroupKFold` por município | Alunos do mesmo município compartilham todas as features |
-| 9 | Flag + avaliação separada de cold start | 23,1% dos alunos, perfil distinto |
+| 9 | Flag + avaliação separada de cold start | 23,1% dos alunos ⚠️ revisado para 1,9% na Fase 5 — ver nota acima |
 | 10 | Reportar F1 e AUC-PR além de acurácia | Custo assimétrico: não sinalizar criança em risco é pior |
 
 ## Limitações (vão para o README final)

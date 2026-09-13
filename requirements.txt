@@ -7,6 +7,10 @@ pyarrow==25.0.1
 scikit-learn==1.8.0
 xgboost==3.2.0
 optuna==4.9.0
+# Serialização do pipeline treinado. Vem junto com o scikit-learn, mas é
+# importado diretamente pelo nosso código — declarado para não depender de
+# dependência transitiva.
+joblib==1.5.3
 
 # Interpretabilidade
 shap==0.52.0
@@ -14,7 +18,6 @@ shap==0.52.0
 # Visualização
 matplotlib==3.10.9
 seaborn==0.13.2
-plotly==7.0.0
 
 # Ingestão (BigQuery / GCS)
 google-cloud-bigquery==3.45.0

@@ -13,7 +13,7 @@ projeção contra as metas pactuadas e agrupamento de territórios com perfis se
 | Modelo | XGBoost em `Pipeline` do scikit-learn |
 | AUC-ROC no teste | **0,6633** (baseline: 0,6371) |
 | Ordenação municipal (Spearman) | **0,7775** (baseline: 0,6238) |
-| Testes automatizados | **49** |
+| Testes automatizados | **61** |
 
 ---
 
@@ -79,20 +79,43 @@ isso `presenca` é filtro e nunca feature.
 
 ## 4. Etapas de modelagem
 
+### Como reproduzir
+
 ```bash
 pip install -r requirements.txt
-cp .env.example .env                        # caminho local da service account
-python -m src.ingestion.extract_bigquery    # extração (dry-run de custo antes de cada query)
-python -m src.preprocessing.build_features  # dataset de modelagem
-python -m src.modeling.comparar_modelos     # baselines + 3 modelos
-python -m src.modeling.otimizar             # busca de hiperparâmetros
-python -m src.modeling.treinar_final        # treino final + abertura do teste
-python -m src.evaluation.interpretabilidade # SHAP
-python -m src.evaluation.comparacao_justa   # modelo x baseline a orçamento igual
-python -m src.application.risco_municipal   # ranking + metas
-python -m src.application.clusterizacao     # segmentação
-pytest tests/                               # 49 testes
+cp .env.example .env                 # caminho da service account (só para a ingestão)
+
+python -m src.executar_pipeline      # pipeline completo, de ponta a ponta
+pytest tests/
 ```
+
+`src/executar_pipeline.py` roda todas as etapas em ordem, para no primeiro erro e mostra o
+tempo de cada uma.
+
+| Opção | Efeito |
+|---|---|
+| *(padrão)* | Pula a ingestão se as 7 fontes já estão em `data/raw/` |
+| `--com-ingestao` | Extrai tudo de novo do BigQuery |
+| `--reusar-hiperparametros` | Usa `reports/melhores_hiperparametros.json` e pula a busca (~30 min) |
+
+**Limite de reprodutibilidade:** os dados brutos não são versionados, por tamanho e por
+origem. A ingestão lê a camada Gold da Fase 2, que fica num projeto GCP próprio. Por isso,
+reproduzir do zero exige uma credencial com acesso a esse projeto. Com `data/raw/`
+preenchido, todo o resto roda sem credencial.
+
+| # | Módulo | Etapa |
+|---|---|---|
+| 1 | `src.ingestion.extract_bigquery` | Extração, com dry-run de custo antes de cada query |
+| 2 | `src.preprocessing.build_features` | Dataset de modelagem |
+| 3 | `src.modeling.comparar_modelos` | Baselines + 3 modelos |
+| 4 | `src.modeling.otimizar` | Busca de hiperparâmetros |
+| 5 | `src.modeling.treinar_final` | Treino final + abertura do teste |
+| 6 | `src.evaluation.interpretabilidade` | SHAP |
+| 7 | `src.evaluation.comparacao_justa` | Modelo x baseline a orçamento igual |
+| 8 | `src.application.risco_municipal` | Ranking de risco + metas |
+| 9 | `src.application.clusterizacao` | Segmentação de municípios |
+
+Qualquer etapa também roda sozinha com `python -m <módulo>`.
 
 ### Pré-processamento integrado ao modelo
 
@@ -126,9 +149,14 @@ A razão é estatística: com validação cruzada cada município do treino part
 validação, o que dá uma estimativa mais estável para comparar modelos do que um único corte
 fixo — e evita gastar 20% dos dados num conjunto que ficaria ocioso no resto do processo.
 
-**Nenhuma decisão do projeto consultou o teste.** Escolha de features, escolha de algoritmo e
-os 40 trials de busca de hiperparâmetros usaram exclusivamente os folds de validação. O teste
-foi aberto ao final, uma vez.
+**Nenhuma decisão de modelagem consultou o teste.** Escolha de features, escolha de algoritmo e
+os 40 trials de busca de hiperparâmetros usaram exclusivamente os folds de validação.
+
+O teste foi aberto **duas vezes**, e o registro fica aqui em vez de ser escondido. A primeira
+abertura foi ao final da modelagem original. A segunda veio depois que a análise SHAP revelou
+um bug de ingestão (seção 8), e todo o pipeline foi refeito. O que motivou a segunda abertura
+foi uma auditoria da fonte de dados, não insatisfação com a métrica — a correção, aliás, não
+melhorou a validação cruzada. Detalhes em [`reports/04_modelagem.md`](reports/04_modelagem.md).
 
 ### Por que o split é por município
 
@@ -302,6 +330,22 @@ risco, **84,5%**. Separação de 48,3 p.p.
 
 ![ranking por decil](images/ranking_por_decil.png)
 
+### A interpretabilidade encontrou um bug que as métricas não mostravam
+
+O SHAP apontou a proficiência média como a feature mais importante. Ao investigar por que os
+municípios sem histórico iam tão mal, descobrimos que **92,4% deles eram de São Paulo**. O
+microdado de 2023 não cobre SP, mas a taxa daquele ano estava na camada Gold e não tinha sido
+usada. Era falha de ingestão nossa, não ausência de dado.
+
+Com a correção, o cold start caiu de 23,1% para **1,9%** da base. A AUC em validação cruzada
+não mudou (0,6590 → 0,6591), mas a lógica do modelo mudou. Antes, ele usava a meta pactuada
+como substituta da taxa histórica, porque as duas têm correlação de 0,947. Depois, a taxa real
+subiu de 8º para 2º no SHAP, e a meta caiu de 2º para 5º.
+
+Nenhuma métrica de performance teria mostrado isso. Detalhes em
+[`reports/03_features.md`](reports/03_features.md) e
+[`reports/05_interpretabilidade.md`](reports/05_interpretabilidade.md).
+
 ## 9. Limitações do projeto
 
 | Limitação | Consequência |
@@ -372,7 +416,7 @@ src/
 reports/         # 01_ingestao · 02_eda · 03_features · 04_modelagem · 05_interpretabilidade
                  # 06_aplicacao · 07_roteiro_video + artefatos de resultado
 images/          # 16 figuras
-tests/           # 49 testes
+tests/           # 61 testes
 ```
 
 ## Versionamento

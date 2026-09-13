@@ -1,7 +1,7 @@
 # Fase 3 — Feature Engineering
 
 `python -m src.preprocessing.build_features` → `data/processed/dataset_modelagem.parquet`
-**1.851.852 linhas × 61 colunas** (alunos avaliados em 2024), 5.517 municípios.
+**1.851.852 linhas × 62 colunas** (alunos avaliados em 2024), 5.517 municípios.
 
 Desenho: **features de 2023 → alvo de 2024**. Nenhuma feature usa informação do ano que
 está sendo previsto. Isso não é só higiene metodológica — o caso de uso é triagem *antes*
@@ -66,7 +66,62 @@ esgoto, energia, alimentação, quadra, acessibilidade; proporção rural; médi
 razões `censo_alunos_por_turma` e `censo_alunos_por_docente`.
 
 ### Contexto direto e flags
-`rede` (municipal/estadual/privada), `uf`, `regiao`, `sem_historico_municipal`.
+`rede` (municipal/estadual/privada), `uf`, `regiao`, `sem_historico_municipal`,
+`historico_do_gold`.
+
+---
+
+## ⚠️ Bug de ingestão encontrado na Fase 5 (corrigido aqui)
+
+A análise SHAP apontou `hist_proficiencia_media` como a feature mais importante do modelo.
+Ao investigar por que o subgrupo cold start ia tão mal, o cold start revelou-se **concentrado
+em um único estado**:
+
+| UF | % do cold start |
+|---|---|
+| **SP** | **92,4%** |
+| DF | 5,2% |
+| AC | 2,4% |
+
+**100% dos 395.444 alunos de São Paulo** (642 municípios) estavam sem histórico. A causa: o
+histórico era construído exclusivamente a partir do microdado `alunos.parquet`, que **não tem
+SP em 2023** — o estado aparece só em 2024. Não era ausência real de dado; era falha de
+ingestão nossa.
+
+A taxa de 2023 de SP existe em `gold_indicador_municipio` e foi recuperada:
+
+| | alunos | % da base |
+|---|---|---|
+| Cold start antes | 428.119 | 23,1% |
+| Recuperado pela Gold | 392.666 | 21,2% |
+| **Cold start depois** | **35.453** | **1,9%** |
+
+### O que é e o que não é recuperável
+
+Apenas `taxa_alfabetizacao`. As colunas `taxa_alfabetizacao_alunos`, `proficiencia_media` e
+`n_alunos_avaliados` da Gold são **100% nulas exatamente nas 627 linhas de SP** — elas são
+derivadas do mesmo microdado que falta, então não trazem informação nova.
+
+Consequência: municípios preenchidos pela Gold recebem `hist_taxa_alfabetizacao` e
+`gap_meta_2024`, mas seguem sem `hist_proficiencia_media`, `hist_n_avaliados`,
+`hist_n_escolas`, `hist_desvio_entre_escolas` e `hist_taxa_participacao`.
+
+### Inconsistência de fonte, medida e assumida
+
+Nos 4.821 municípios presentes nas duas origens, `taxa_alfabetizacao/100` difere da taxa
+derivada do microdado em **0,6 p.p. (mediana), correlação 0,983**. Não é a mesma conta —
+provavelmente diverge no tratamento de pesos amostrais.
+
+Duas decisões de desenho tratam isso:
+
+1. **O microdado continua sendo fonte primária.** A Gold entra só via `fillna`, onde o
+   microdado falta. Nenhum município já coberto teve seu valor trocado.
+2. **A flag `historico_do_gold` entra como feature** (passthrough), para o modelo poder
+   distinguir as duas origens em vez de tratá-las como intercambiáveis.
+
+Quatro testes travam esse comportamento (`tests/test_preprocessing.py`): SP tem histórico,
+cold start residual < 5%, a flag implica exatamente as features ausentes que promete, e as
+duas flags de histórico são mutuamente exclusivas.
 
 ---
 
@@ -76,7 +131,7 @@ razões `censo_alunos_por_turma` e `censo_alunos_por_docente`.
 |---|---|---|
 | Numéricas | `SimpleImputer(median)` + `StandardScaler` opcional | Mediana porque as distribuições municipais são assimétricas (PIB per capita, população) e a média seria puxada pelos extremos. Scaling é desligável: árvores não precisam |
 | Categóricas | `SimpleImputer(most_frequent)` + `OneHotEncoder(handle_unknown='ignore')` | Cardinalidade baixa (3/5/27) torna One-Hot viável e preserva a ausência de ordem. `handle_unknown='ignore'` porque um fold pode conter UF ausente do treino |
-| `sem_historico_municipal` | passthrough | Já é 0/1 e carrega significado próprio |
+| `sem_historico_municipal`, `historico_do_gold` | passthrough | Já são 0/1 e carregam significado próprio: ausência total de histórico vs. histórico parcial vindo do agregado |
 | `id_municipio` | **removida das features** | Serve só para agrupar no cross-validation |
 
 **Não usamos Target Encoding.** Ele calcula a média do alvo por categoria e é a porta de
@@ -114,17 +169,21 @@ Sem essa guarda, elas sobreviveriam à imputação disfarçadas de feature e pol
 
 | Faixa | Colunas | Causa |
 |---|---|---|
-| ~23-26% | `hist_*`, `gap_meta_2024` | Cold start: municípios que entraram na avaliação em 2024 |
+| ~23% | `hist_proficiencia_media`, `hist_n_avaliados`, `hist_n_escolas`, `hist_desvio_entre_escolas`, `hist_taxa_participacao` | Exigem microdado: nulas para os 625 municípios vindos da Gold (21,2%) mais o cold start real (1,9%) |
+| ~1,9% | `hist_taxa_alfabetizacao`, `gap_meta_2024` | Cold start real: DF, AC e casos isolados |
 | ~3-5% | `meta_alfabetizacao_*` | Municípios sem metas pactuadas |
 | ~0,1% | IDHM | 5 municípios criados após o censo de 2010 |
 
-Todos são imputados **dentro do pipeline**, por fold. O cold start ainda ganha flag própria
-e será avaliado separadamente na Fase 4.
+Todos são imputados **dentro do pipeline**, por fold. As duas situações de ausência ganham
+flags próprias (`sem_historico_municipal`, `historico_do_gold`) e são avaliadas
+separadamente na Fase 4 — imputar sem sinalizar faria o modelo tratar um valor inventado
+como se fosse medido.
 
 ---
 
 ## Verificação
 
-`pytest tests/` → **20/20**. Os testes de pré-processamento travam: nenhuma coluna proibida
-no dataset, nenhuma feature com |r| > 0,9 com o alvo, imputação ajustada só no treino, e o
-pipeline tolerando categoria inédita no fold de validação.
+`pytest tests/` → **24/24**. Os testes de pré-processamento travam: nenhuma coluna proibida
+no dataset, nenhuma feature com |r| > 0,9 com o alvo, imputação ajustada só no treino, o
+pipeline tolerando categoria inédita no fold de validação, e as quatro garantias do
+preenchimento pela Gold descritas acima.

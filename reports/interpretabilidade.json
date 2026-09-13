@@ -1,0 +1,137 @@
+{
+  "n_explicado": 30000,
+  "n_features": 90,
+  "valor_base_log_odds": 0.39518558979034424,
+  "valor_base_probabilidade": 0.5975304245948792,
+  "verificacao_eficiencia": {
+    "erro_maximo_com_sigmoide": 2.980232238769531e-07,
+    "erro_maximo_sem_sigmoide": 2.7654597759246826
+  },
+  "top_features": [
+    {
+      "feature": "hist_proficiencia_media",
+      "shap_medio_abs": 0.18000930547714233,
+      "direcao": 0.9811356524336686
+    },
+    {
+      "feature": "hist_taxa_alfabetizacao",
+      "shap_medio_abs": 0.14022640883922577,
+      "direcao": 0.903555608118467
+    },
+    {
+      "feature": "hist_taxa_participacao",
+      "shap_medio_abs": 0.05856792628765106,
+      "direcao": 0.9020826258355467
+    },
+    {
+      "feature": "uf_RS",
+      "shap_medio_abs": 0.05481866002082825,
+      "direcao": -0.9884679101157561
+    },
+    {
+      "feature": "meta_alfabetizacao_2026",
+      "shap_medio_abs": 0.05021871626377106,
+      "direcao": 0.9633987711542964
+    },
+    {
+      "feature": "uf_MG",
+      "shap_medio_abs": 0.038922376930713654,
+      "direcao": 0.9650316764493482
+    },
+    {
+      "feature": "uf_BA",
+      "shap_medio_abs": 0.03247992694377899,
+      "direcao": -0.9812851751307576
+    },
+    {
+      "feature": "rede_3",
+      "shap_medio_abs": 0.026485493406653404,
+      "direcao": -0.9043275204586152
+    },
+    {
+      "feature": "rede_2",
+      "shap_medio_abs": 0.02431420423090458,
+      "direcao": 0.9263119222138806
+    },
+    {
+      "feature": "regiao_Sudeste",
+      "shap_medio_abs": 0.02359362505376339,
+      "direcao": 0.882644155911694
+    },
+    {
+      "feature": "taxa_agua_esgoto_inadequados",
+      "shap_medio_abs": 0.020562700927257538,
+      "direcao": -0.560256928665333
+    },
+    {
+      "feature": "gap_meta_2024",
+      "shap_medio_abs": 0.017395656555891037,
+      "direcao": -0.9064436632500305
+    },
+    {
+      "feature": "uf_GO",
+      "shap_medio_abs": 0.014069045893847942,
+      "direcao": 0.977928310947719
+    },
+    {
+      "feature": "meta_alfabetizacao_2024",
+      "shap_medio_abs": 0.013559957034885883,
+      "direcao": 0.9015971285271103
+    },
+    {
+      "feature": "censo_prop_internet",
+      "shap_medio_abs": 0.012503313831984997,
+      "direcao": 0.46572906912487494
+    },
+    {
+      "feature": "censo_prop_quadra",
+      "shap_medio_abs": 0.011912784539163113,
+      "direcao": 0.6996880331263742
+    },
+    {
+      "feature": "taxa_criancas_fora_escola_6_14",
+      "shap_medio_abs": 0.009947619400918484,
+      "direcao": -0.4382021354604004
+    },
+    {
+      "feature": "taxa_energia_eletrica",
+      "shap_medio_abs": 0.009408066980540752,
+      "direcao": 0.5798996092155595
+    },
+    {
+      "feature": "censo_n_escolas",
+      "shap_medio_abs": 0.008504313416779041,
+      "direcao": -0.5102335856807256
+    },
+    {
+      "feature": "censo_prop_rampas",
+      "shap_medio_abs": 0.008458355441689491,
+      "direcao": 0.8455432132977964
+    }
+  ],
+  "dependencias_plotadas": [
+    "hist_proficiencia_media",
+    "hist_taxa_alfabetizacao",
+    "hist_taxa_participacao"
+  ],
+  "casos_individuais": {
+    "maior_risco": {
+      "probabilidade_alfabetizacao": 0.2518726587295532,
+      "uf": "BA",
+      "rede": "3",
+      "cold_start": false
+    },
+    "menor_risco": {
+      "probabilidade_alfabetizacao": 0.976849377155304,
+      "uf": "CE",
+      "rede": "3",
+      "cold_start": false
+    },
+    "maior_risco_cold_start": {
+      "probabilidade_alfabetizacao": 0.4505153298377991,
+      "uf": "AC",
+      "rede": "3",
+      "cold_start": true
+    }
+  }
+}

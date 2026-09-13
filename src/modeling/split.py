@@ -29,27 +29,55 @@ MINIMO_POR_ESTRATO = 10
 
 
 def _estrato_municipal(df: pd.DataFrame) -> pd.Series:
-    """Estrato para o split: região × ter ou não histórico.
+    """Estrato para o split: região × qualidade do histórico municipal.
 
     Garante que o teste tenha a mesma composição regional do treino e a mesma
-    proporção de municípios em cold start — senão a avaliação do subgrupo mais
-    frágil ficaria por conta da sorte.
+    proporção de cada situação de histórico — senão a avaliação dos subgrupos mais
+    frágeis ficaria por conta da sorte.
 
-    Combinações raras colapsam para um estrato que preserva apenas a dimensão de
-    cold start: é a que importa para a avaliação por subgrupo, e manter a região
-    junto criaria classes de 1 município, que não têm como ser estratificadas.
+    São três situações, não duas, e elas têm desempenho esperado bem diferente:
+      completo  — histórico derivado do microdado de 2023 (6 features)
+      parcial   — só a taxa, vinda do agregado da Gold (625 municípios, quase todos
+                  de SP); proficiência, dispersão e participação ausentes
+      ausente   — cold start real (51 municípios, sobretudo DF e AC)
+
+    Combinações raras colapsam para um estrato que preserva apenas a situação do
+    histórico: é a dimensão que importa para a avaliação por subgrupo, e manter a
+    região junto criaria classes de 1 município, impossíveis de estratificar.
     """
     por_municipio = df.groupby("id_municipio").agg(
         regiao=("regiao", "first"),
         sem_historico=("sem_historico_municipal", "first"),
+        do_gold=("historico_do_gold", "first"),
+        n_alunos=("alfabetizado", "size"),
     )
-    estrato = por_municipio["regiao"].astype(str) + "_" + por_municipio["sem_historico"].astype(str)
+    situacao = np.where(
+        por_municipio["sem_historico"] == 1,
+        "ausente",
+        np.where(por_municipio["do_gold"] == 1, "parcial", "completo"),
+    )
+    por_municipio["situacao"] = situacao
+
+    # O porte entra no estrato porque a estratificação conta MUNICÍPIOS, mas a
+    # métrica é calculada sobre ALUNOS. Sem isso, sortear alguns municípios grandes
+    # a mais desloca a composição do teste em dezenas de pontos percentuais — foi
+    # exatamente o que aconteceu na primeira rodada (37,9% de cold start no teste
+    # contra 23,1% na população).
+    por_municipio["porte"] = pd.qcut(
+        por_municipio["n_alunos"], q=4, labels=["P", "M", "G", "GG"], duplicates="drop"
+    ).astype(str)
+
+    estrato = (
+        por_municipio["regiao"].astype(str)
+        + "_" + por_municipio["situacao"]
+        + "_" + por_municipio["porte"]
+    )
 
     tamanhos = estrato.value_counts()
     raros = tamanhos[tamanhos < MINIMO_POR_ESTRATO].index
     if len(raros):
         logger.info("Colapsando %d estrato(s) raro(s): %s", len(raros), list(raros))
-        fallback = "raro_" + por_municipio["sem_historico"].astype(str)
+        fallback = pd.Series("raro_" + por_municipio["situacao"], index=por_municipio.index)
         estrato = estrato.where(~estrato.isin(raros), fallback)
 
     return estrato
@@ -110,6 +138,19 @@ def amostrar_para_busca(df: pd.DataFrame, n: int = 300_000) -> pd.DataFrame:
         df.groupby("id_municipio", group_keys=False)
         .sample(frac=fracao, random_state=SEED)
     )
+
+    # `frac` arredonda para baixo: um município com 9 alunos a uma fração de 0,06
+    # vira zero linha e desaparece da amostra — justamente o perfil raro que mais
+    # interessa preservar. Garantimos pelo menos uma linha por município.
+    faltantes = set(df["id_municipio"]) - set(amostra["id_municipio"])
+    if faltantes:
+        resgate = (
+            df[df["id_municipio"].isin(faltantes)]
+            .groupby("id_municipio", group_keys=False)
+            .sample(n=1, random_state=SEED)
+        )
+        amostra = pd.concat([amostra, resgate])
+        logger.info("Resgatados %d municípios que a fração zerou", len(faltantes))
     logger.info(
         "Amostra para busca: %d alunos / %d municípios (de %d / %d)",
         len(amostra), amostra["id_municipio"].nunique(),

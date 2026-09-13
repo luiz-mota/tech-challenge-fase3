@@ -75,10 +75,20 @@ def main() -> None:
     baseline = teste["hist_taxa_alfabetizacao"].fillna(y_treino.mean()).to_numpy()
     resultado_baseline = avaliar(y_teste, baseline)
 
-    # ---- Cold start ------------------------------------------------------
+    # ---- Desempenho por qualidade do histórico ---------------------------
+    # Três situações com informação disponível bem diferente. Reportar só a média
+    # esconderia que o modelo é muito mais fraco onde o histórico falta.
     sem_historico = teste["sem_historico_municipal"] == 1
+    do_gold = teste["historico_do_gold"] == 1
+
+    subgrupos = [
+        ("histórico completo", ~sem_historico & ~do_gold),
+        ("histórico parcial (Gold)", do_gold),
+        ("cold start", sem_historico),
+    ]
+
     por_subgrupo = {}
-    for rotulo, mascara in [("com histórico", ~sem_historico), ("cold start", sem_historico)]:
+    for rotulo, mascara in subgrupos:
         if mascara.sum() == 0:
             continue
         por_subgrupo[rotulo] = avaliar(y_teste[mascara.values], prob_teste[mascara.values])

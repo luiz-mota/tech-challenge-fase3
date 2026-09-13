@@ -25,8 +25,12 @@ ALVO = "alfabetizado"
 # vazamento — o ganho não compensa o risco com tão poucas categorias.
 COLUNAS_CATEGORICAS = ["rede", "uf", "regiao"]
 
-# Já é 0/1 e carrega significado próprio (município sem histórico); passa direto.
-COLUNAS_PASSTHROUGH = ["sem_historico_municipal"]
+# Já são 0/1 e carregam significado próprio; passam direto.
+#   sem_historico_municipal: município ausente das duas fontes de 2023
+#   historico_do_gold: histórico veio do agregado da Gold, não do microdado — o que
+#     implica que hist_n_escolas, hist_desvio_entre_escolas e hist_taxa_participacao
+#     estão imputadas para esse município. O modelo precisa saber disso.
+COLUNAS_PASSTHROUGH = ["sem_historico_municipal", "historico_do_gold"]
 
 
 def separar_features_alvo(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.Series]:

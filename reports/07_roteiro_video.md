@@ -136,7 +136,7 @@ mais forte que temos.
 | Troca do proxy pela variável real | Excelente achado técnico, sem consequência para a decisão |
 | Hiperparâmetros, Optuna, folds | O gestor não precisa saber como o modelo foi ajustado |
 | Números de AUC | Substituídos pelo que eles significam: "36% contra 84% entre as faixas extremas" |
-| Suíte de 49 testes | Credibilidade se demonstra pelo resultado, não pelo processo, neste formato |
+| Suíte de 61 testes | Credibilidade se demonstra pelo resultado, não pelo processo, neste formato |
 
 Tudo isso está documentado em `reports/01` a `reports/06` e no README.
 

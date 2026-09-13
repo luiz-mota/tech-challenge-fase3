@@ -64,6 +64,84 @@ def test_flag_de_cold_start_corresponde_ao_historico_ausente(dataset: pd.DataFra
     assert (dataset["sem_historico_municipal"].astype(bool) == esperado).all()
 
 
+def test_historico_vem_de_2023_e_nao_de_2024(dataset: pd.DataFrame):
+    """A disciplina temporal do projeto, verificada contra a fonte.
+
+    O desenho é "features de 2023 -> alvo de 2024". Se `hist_taxa_alfabetizacao`
+    passasse a refletir 2024, o modelo estaria vendo o próprio alvo agregado e a
+    métrica explodiria sem nenhum erro aparecer. Este teste confronta o dataset
+    com o microdado bruto: o valor precisa bater com 2023 e NÃO com 2024.
+    """
+    caminho = Path(__file__).resolve().parents[1] / "data" / "raw" / "alunos.parquet"
+    if not caminho.exists():
+        pytest.skip("data/raw/alunos.parquet ausente")
+
+    alunos = pd.read_parquet(caminho)
+    validos = alunos[(alunos["presenca"] == "1") & (alunos["preenchimento_caderno"] == "1")]
+    taxa_por_ano = (
+        validos.assign(alf=(validos["alfabetizado"] == "1").astype(float))
+        .groupby(["id_municipio", "ano"])["alf"]
+        .mean()
+        .unstack()
+    )
+    # Só municípios com microdado nos dois anos e com taxas distintas entre eles —
+    # se 2023 e 2024 coincidissem, o teste não distinguiria nada.
+    candidatos = taxa_por_ano.dropna()
+    candidatos = candidatos[(candidatos[2023] - candidatos[2024]).abs() > 0.05]
+    assert not candidatos.empty, "nenhum município serve de sonda"
+
+    no_dataset = (
+        dataset[dataset["id_municipio"].isin(candidatos.index)]
+        .groupby("id_municipio")["hist_taxa_alfabetizacao"]
+        .first()
+    )
+    sonda = candidatos.loc[no_dataset.index]
+
+    assert np.allclose(no_dataset, sonda[2023]), "o histórico não é o de 2023"
+    assert not np.allclose(no_dataset, sonda[2024]), "o histórico está refletindo 2024"
+
+
+def test_sao_paulo_tem_historico_municipal(dataset: pd.DataFrame):
+    """SP não pode voltar a ser cold start por falha de ingestão.
+
+    O microdado de 2023 não cobre São Paulo, e a primeira versão do pipeline tratou
+    seus 642 municípios como "sem histórico" — 21,2% da base inteira. A taxa de 2023
+    existe na Gold e é recuperável. Se este teste falhar, o preenchimento quebrou.
+    """
+    sp = dataset[dataset["uf"] == "SP"]
+    assert not sp.empty, "SP ausente do dataset"
+    sem_historico = sp["hist_taxa_alfabetizacao"].isna().mean()
+    assert sem_historico < 0.05, f"{sem_historico:.1%} dos alunos de SP sem histórico"
+
+
+def test_cold_start_residual_e_pequeno(dataset: pd.DataFrame):
+    """Cold start legítimo é DF, AC e alguns casos isolados — não um estado inteiro."""
+    fracao = (dataset["sem_historico_municipal"] == 1).mean()
+    assert fracao < 0.05, f"cold start em {fracao:.1%} — o preenchimento pela Gold falhou"
+
+
+def test_historico_do_gold_implica_features_do_microdado_ausentes(dataset: pd.DataFrame):
+    """A flag precisa significar exatamente o que promete.
+
+    Município preenchido pela Gold tem a taxa, mas NÃO tem proficiência, contagem de
+    escolas, dispersão nem participação — essas só existem no microdado. Se isso
+    deixar de valer, a flag virou ruído e o modelo está sendo informado errado.
+    """
+    do_gold = dataset[dataset["historico_do_gold"] == 1]
+    if do_gold.empty:
+        pytest.skip("nenhum município preenchido pela Gold")
+
+    assert do_gold["hist_taxa_alfabetizacao"].notna().all()
+    for coluna in ["hist_proficiencia_media", "hist_n_escolas", "hist_taxa_participacao"]:
+        assert do_gold[coluna].isna().all(), f"{coluna} deveria ser nula quando vem da Gold"
+
+
+def test_flags_de_historico_sao_mutuamente_exclusivas(dataset: pd.DataFrame):
+    """Ou o município tem histórico (de alguma fonte), ou não tem. Nunca os dois."""
+    ambos = (dataset["sem_historico_municipal"] == 1) & (dataset["historico_do_gold"] == 1)
+    assert not ambos.any(), "município marcado simultaneamente como cold start e preenchido"
+
+
 def test_separacao_remove_alvo_e_grupo(amostra: pd.DataFrame):
     X, y, grupos = separar_features_alvo(amostra)
     assert ALVO not in X.columns

@@ -24,12 +24,17 @@ from sklearn.metrics import (
 # é ela que precisa ser encontrada. Como o alvo codifica alfabetizado=1, as métricas
 # de "risco" olham a classe 0.
 def avaliar(y_true, y_prob, threshold: float = 0.5) -> dict[str, float]:
+    # Normaliza na entrada: os chamadores passam ora Series do pandas, ora ndarray,
+    # ora lista. `lista >= float` é TypeError, e o erro só apareceria em produção.
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob, dtype=float)
+
     y_pred = (y_prob >= threshold).astype(int)
 
     # Perspectiva "detectar risco": inverte-se o alvo para que a classe positiva
     # seja a criança não alfabetizada.
-    risco_true = 1 - np.asarray(y_true)
-    risco_prob = 1 - np.asarray(y_prob)
+    risco_true = 1 - y_true
+    risco_prob = 1 - y_prob
 
     return {
         "auc_roc": roc_auc_score(y_true, y_prob),

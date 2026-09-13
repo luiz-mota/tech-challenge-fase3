@@ -1,0 +1,87 @@
+{
+  "k_pela_silhueta": 2,
+  "silhueta_maxima": 0.28334178317991776,
+  "estrutura_de_grupos_forte": false,
+  "limiar_usado": 0.3,
+  "k_operacional": 4,
+  "variancia_explicada_pca_2d": 0.5112153042093995,
+  "n_municipios": 5517,
+  "n_features": 25,
+  "tamanho_dos_grupos": {
+    "0": 3138,
+    "1": 2379
+  },
+  "tamanho_dos_segmentos": {
+    "0": 1767,
+    "1": 1479,
+    "2": 295,
+    "3": 1976
+  },
+  "diagnostico": [
+    {
+      "k": 2,
+      "silhueta": 0.28334178317991776,
+      "inercia": 95556.49036316993
+    },
+    {
+      "k": 3,
+      "silhueta": 0.17221993663185753,
+      "inercia": 87005.70523075636
+    },
+    {
+      "k": 4,
+      "silhueta": 0.17710047102818327,
+      "inercia": 80606.19754724382
+    },
+    {
+      "k": 5,
+      "silhueta": 0.13001020183604892,
+      "inercia": 76844.31415431046
+    },
+    {
+      "k": 6,
+      "silhueta": 0.16968291304419247,
+      "inercia": 74251.67004237467
+    },
+    {
+      "k": 7,
+      "silhueta": 0.12308288965777278,
+      "inercia": 70683.99977711386
+    },
+    {
+      "k": 8,
+      "silhueta": 0.11140743948972387,
+      "inercia": 68548.53038768804
+    }
+  ],
+  "cruzamento_com_risco": [
+    {
+      "segmento": 0,
+      "n_municipios": 1767,
+      "risco_previsto": 0.3055,
+      "taxa_observada": 0.6984,
+      "fracao_em_risco_de_meta": 0.365
+    },
+    {
+      "segmento": 1,
+      "n_municipios": 1479,
+      "risco_previsto": 0.3526,
+      "taxa_observada": 0.6488,
+      "fracao_em_risco_de_meta": 0.4151
+    },
+    {
+      "segmento": 2,
+      "n_municipios": 295,
+      "risco_previsto": 0.4637,
+      "taxa_observada": 0.5365,
+      "fracao_em_risco_de_meta": 0.5051
+    },
+    {
+      "segmento": 3,
+      "n_municipios": 1976,
+      "risco_previsto": 0.421,
+      "taxa_observada": 0.5765,
+      "fracao_em_risco_de_meta": 0.3684
+    }
+  ]
+}

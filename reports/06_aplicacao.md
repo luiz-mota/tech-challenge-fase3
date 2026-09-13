@@ -241,4 +241,4 @@ Nordeste compartilham perfil entre si mais do que com as capitais dos próprios 
 | `reports/clusters_municipais.csv` | Grupo e segmento de cada município |
 | `reports/segmentos_caracteristicas.csv` | O que distingue cada segmento |
 | `reports/clusterizacao.json` | Diagnóstico de k e cruzamento com risco |
-| `images/` | 13 figuras |
+| `images/` | 16 figuras (4 da EDA + 12 das Fases 5-6) |

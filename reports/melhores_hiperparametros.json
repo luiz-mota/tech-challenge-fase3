@@ -1,0 +1,17 @@
+{
+  "melhor_auc_cv": 0.6591209009313994,
+  "parametros": {
+    "learning_rate": 0.02205909612349025,
+    "max_depth": 5,
+    "min_child_weight": 11,
+    "subsample": 0.6928021073323819,
+    "colsample_bytree": 0.5565514949054031,
+    "reg_alpha": 6.540035625151352e-06,
+    "reg_lambda": 2.4914989315676714,
+    "n_estimators": 391
+  },
+  "n_trials": 40,
+  "trials_podados": 18,
+  "duracao_min": 27.9,
+  "n_amostra": 150044
+}

@@ -1,0 +1,113 @@
+{
+  "n_municipios": 5517,
+  "validacao_ranking": {
+    "correlacao_pearson": 0.7835848509551929,
+    "correlacao_spearman": 0.7775327265164667,
+    "baseline_spearman_taxa_2023": 0.6238233984811763,
+    "modelo_spearman_mesmos_municipios": 0.7770433323093864,
+    "ganho_sobre_persistencia": 0.1532199338282101,
+    "n_municipios_com_historico": 1095,
+    "taxa_observada_decil_maior_risco": 0.36264412188433764,
+    "taxa_observada_decil_menor_risco": 0.8453156900036557,
+    "separacao_pp": 48.267156811931805,
+    "por_decil": [
+      {
+        "decil_risco": 0,
+        "n_municipios": 111,
+        "taxa_observada": 0.8453156900036557,
+        "taxa_prevista": 0.8672229647636414
+      },
+      {
+        "decil_risco": 1,
+        "n_municipios": 110,
+        "taxa_observada": 0.7975958882455881,
+        "taxa_prevista": 0.7935281991958618
+      },
+      {
+        "decil_risco": 2,
+        "n_municipios": 110,
+        "taxa_observada": 0.7650183986439746,
+        "taxa_prevista": 0.7567660212516785
+      },
+      {
+        "decil_risco": 3,
+        "n_municipios": 111,
+        "taxa_observada": 0.7108852166826463,
+        "taxa_prevista": 0.7100734710693359
+      },
+      {
+        "decil_risco": 4,
+        "n_municipios": 110,
+        "taxa_observada": 0.6437987002855149,
+        "taxa_prevista": 0.656152069568634
+      },
+      {
+        "decil_risco": 5,
+        "n_municipios": 110,
+        "taxa_observada": 0.6152523498902119,
+        "taxa_prevista": 0.6072583794593811
+      },
+      {
+        "decil_risco": 6,
+        "n_municipios": 111,
+        "taxa_observada": 0.5934048396586118,
+        "taxa_prevista": 0.5650240182876587
+      },
+      {
+        "decil_risco": 7,
+        "n_municipios": 110,
+        "taxa_observada": 0.5332622989529217,
+        "taxa_prevista": 0.5154104828834534
+      },
+      {
+        "decil_risco": 8,
+        "n_municipios": 110,
+        "taxa_observada": 0.4512733811884927,
+        "taxa_prevista": 0.4472925066947937
+      },
+      {
+        "decil_risco": 9,
+        "n_municipios": 111,
+        "taxa_observada": 0.36264412188433764,
+        "taxa_prevista": 0.3559921979904175
+      }
+    ]
+  },
+  "meta_2024": {
+    "municipios_em_risco": 2136,
+    "fracao": 0.3871669385535617,
+    "alunos_afetados": 797017
+  },
+  "por_regiao": [
+    {
+      "regiao": "Centro-Oeste",
+      "n_municipios": 466,
+      "risco_medio": 0.28450000286102295,
+      "fracao_em_risco_de_meta": 0.1052
+    },
+    {
+      "regiao": "Nordeste",
+      "n_municipios": 1782,
+      "risco_medio": 0.4332999885082245,
+      "fracao_em_risco_de_meta": 0.4226
+    },
+    {
+      "regiao": "Norte",
+      "n_municipios": 435,
+      "risco_medio": 0.4909000098705292,
+      "fracao_em_risco_de_meta": 0.492
+    },
+    {
+      "regiao": "Sudeste",
+      "n_municipios": 1664,
+      "risco_medio": 0.2971999943256378,
+      "fracao_em_risco_de_meta": 0.2091
+    },
+    {
+      "regiao": "Sul",
+      "n_municipios": 1170,
+      "risco_medio": 0.3564999997615814,
+      "fracao_em_risco_de_meta": 0.6598
+    }
+  ]
+}

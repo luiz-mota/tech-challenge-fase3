@@ -111,18 +111,37 @@ acontece uma vez por fold, automaticamente.
 **Não usamos Target Encoding** — ele calcula a média do alvo por categoria e é a porta de
 entrada clássica de vazamento.
 
-### Separação treino/teste e validação
+### Separação entre treino, validação e teste
+
+São **três** conjuntos com papéis distintos, e nenhum deles contamina o outro:
+
+| Conjunto | Como é formado | Para que serve | Tamanho |
+|---|---|---|---|
+| **Treino** | 80% dos municípios | Ajuste dos parâmetros do modelo | 1.559.528 alunos / 4.413 municípios |
+| **Validação** | 5 folds `StratifiedGroupKFold` **dentro do treino** | Comparar modelos e buscar hiperparâmetros | rotativo, 5 × ~20% do treino |
+| **Teste** | 20% dos municípios, lacrado | Estimativa final de generalização | 292.324 alunos / 1.104 municípios |
+
+A validação é feita por **reamostragem dentro do treino**, e não por uma terceira fatia fixa.
+A razão é estatística: com validação cruzada cada município do treino participa uma vez da
+validação, o que dá uma estimativa mais estável para comparar modelos do que um único corte
+fixo — e evita gastar 20% dos dados num conjunto que ficaria ocioso no resto do processo.
+
+**Nenhuma decisão do projeto consultou o teste.** Escolha de features, escolha de algoritmo e
+os 40 trials de busca de hiperparâmetros usaram exclusivamente os folds de validação. O teste
+foi aberto ao final, uma vez.
+
+### Por que o split é por município
 
 Todas as features são municipais, então dois alunos do mesmo município são quase idênticos
 para o modelo. Um split por linha colocaria o mesmo município dos dois lados e o modelo
 memorizaria o resultado de 2024 daquela rede — **sem que nada quebrasse no código**.
 
 - **Split por município**, estratificado por `região × situação do histórico × porte`
-- **`StratifiedGroupKFold`** na validação cruzada: `Group` não reparte município entre treino
-  e validação, `Stratified` mantém a proporção do alvo
-- **Teste aberto uma única vez**, ao fim da modelagem
+- **`StratifiedGroupKFold`** na validação: `Group` não reparte município entre treino e
+  validação, `Stratified` mantém a proporção do alvo em cada fold
 
-Treino: 1.559.528 alunos / 4.413 municípios · Teste: 292.324 / 1.104 · zero sobreposição.
+Zero municípios em comum entre treino e teste — travado no teste
+`test_nenhum_municipio_aparece_nos_dois_lados`.
 
 ## 5. Escolha do algoritmo
 
